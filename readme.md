@@ -21,7 +21,9 @@ You can also quickly add todo items from the command line with the `-a` switch. 
  1. Place na.sh on your disk. You can put it in your home folder, but the location doesn't matter, as long as you adjust the path in the next step accordingly
  2. Add this line to your `~/.bash_profile`
 		 
-	[[ -s "/Users/ttscoff/scripts/na.sh" ]] && source "$HOME/na.sh"
+	[[ -s "/Users/ttscoff/scripts/na.sh" ]] && source "/Users/ttscoff/na.sh"
+
+**The database is stored in `~/.tdlist`. I haven't made this configurable yet.**
 
 ### Usage
 
