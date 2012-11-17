@@ -15,15 +15,6 @@ function na() {
   local DEFAULT="\033[0;39m"
   local CYAN="\033[0;36m"
   if [[ $# -eq 0 ]]; then
-    # If the cache file is older than 1 week, weed it
-    # if ! /usr/bin/perl -e '
-    #   my $ARGV = $ARGV[0];
-    #   if (-e $ARGV) { if (time - (stat $ARGV)[9] <= 604800) { exit (0); } }
-    #   exit 1;
-    # ' "~/.tdlist" ; then
-    #   _weed_cache_file
-    # fi
-
     # Do an ls to see if there are any matching files
     CHKFILES=$(ls -C1 *.$NA_TODO_EXT 2> /dev/null | wc -l)
     if [ $CHKFILES -ne 0 ]; then
@@ -100,13 +91,13 @@ SCRIPT
      return
    fi
   else
+    _weed_cache_file
     if [[ -d "${fnd%% *}" ]]; then
       cd "${fnd%% *}" >> /dev/null
       target="`pwd`"
       cd - >> /dev/null
       echo "${target%/}" >> ~/.tdlist
       sort -u ~/.tdlist -o ~/.tdlist
-      _weed_cache_file
     else
       target=$(ruby <<SCRIPTTIME
       if (File.exists?(File.expand_path('~/.tdlist')))
@@ -180,15 +171,20 @@ _weed_cache_file() {
   ruby <<WEEDTIME
     output = []
     tdlist = File.expand_path('~/.tdlist')
+
     if (File.exists?(tdlist))
-      File.open(tdlist, "r") do |infile|
-          while (line = infile.gets)
-              output.push(line) if File.exists?(File.expand_path(line.strip))
-          end
+      # If the file has been modified in the last 2 hours, leave it alone
+      if (Time.now.strftime('%s').to_i - File.stat(tdlist).mtime.strftime('%s').to_i) > 7200
+        # puts "Pruning missing folders from ~/.tdlist"
+        File.open(tdlist, "r") do |infile|
+            while (line = infile.gets)
+                output.push(line) if File.exists?(File.expand_path(line.strip))
+            end
+        end
+        open(tdlist,'w+') { |f|
+          f.puts output.join("\n")
+        }
       end
-      open(tdlist,'w+') { |f|
-        f.puts output.join("\n")
-      }
     end
 WEEDTIME
 }
