@@ -4,7 +4,7 @@
 NA_TODO_EXT="taskpaper"
 NA_NEXT_TAG="@na"
 NA_DONE_TAG="@done"
-NA_MAX_DEPTH=4
+NA_MAX_DEPTH=3
 NA_AUTO_LIST_FOR_DIR=1 # or 0 to disable
 NA_AUTO_LIST_IS_RECURSIVE=0
 
@@ -13,7 +13,17 @@ function na() {
   local DKGRAY="\033[1;30m"
   local GREEN="\033[0;32m"
   local DEFAULT="\033[0;39m"
+  local CYAN="\033[0;36m"
   if [[ $# -eq 0 ]]; then
+    # If the cache file is older than 1 week, weed it
+    # if ! /usr/bin/perl -e '
+    #   my $ARGV = $ARGV[0];
+    #   if (-e $ARGV) { if (time - (stat $ARGV)[9] <= 604800) { exit (0); } }
+    #   exit 1;
+    # ' "~/.tdlist" ; then
+    #   _weed_cache_file
+    # fi
+
     # Do an ls to see if there are any matching files
     CHKFILES=$(ls -C1 *.$NA_TODO_EXT 2> /dev/null | wc -l)
     if [ $CHKFILES -ne 0 ]; then
@@ -96,6 +106,7 @@ SCRIPT
       cd - >> /dev/null
       echo "${target%/}" >> ~/.tdlist
       sort -u ~/.tdlist -o ~/.tdlist
+      _weed_cache_file
     else
       target=$(ruby <<SCRIPTTIME
       if (File.exists?(File.expand_path('~/.tdlist')))
@@ -103,7 +114,12 @@ SCRIPT
         input = File.open(File.expand_path('~/.tdlist'),'r').read
         re = query.gsub(/\s+/,' ').split(" ").join('.*?')
         res = input.scan(/.*?#{re}.*?$/i)
-        puts res.uniq.sort[0] unless res.nil? || res.empty?
+        exit if res.nil? || res.empty?
+        res = res.uniq.sort
+        res.delete_if {|file|
+          !File.exists?(File.expand_path(file))
+        }
+        puts res[0]
       end
 SCRIPTTIME
 )
@@ -115,7 +131,11 @@ SCRIPTTIME
       else
         CHKFILES=$(ls -C1 $target/*.$NA_TODO_EXT 2> /dev/null | wc -l)
         if [ $CHKFILES -ne 0 ]; then
-          echo -e "$DKGRAY[$target]:$GREEN" && grep -h "$NA_NEXT_TAG" "$target"/*.$NA_TODO_EXT | grep -v "$NA_DONE_TAG" | awk '{gsub(/(^[ \t]+| '"$NA_NEXT_TAG"')/, "")};1'
+          echo -e "$DKGRAY[$target]:$GREEN"
+          echo -e "$(grep -h "$NA_NEXT_TAG" "$target"/*.$NA_TODO_EXT | \
+            grep -v "$NA_DONE_TAG" | \
+            awk '{gsub(/(^[ \t]+| '"$NA_NEXT_TAG"')/, "")};1' | \
+            sed -e "s/\(@[^ ]*\)/\\$CYAN\1\\$GREEN/g")"
         fi
       fi
   fi
@@ -126,6 +146,7 @@ _na_fix_output() {
   local DKGRAY="\033[1;30m"
   local GREEN="\033[0;32m"
   local DEFAULT="\033[0;39m"
+  local CYAN="\033[0;36m"
   /usr/bin/ruby <<SCRIPTTIME
     input = "$1"
     exit if input.nil? || input == ''
@@ -145,7 +166,7 @@ _na_fix_output() {
       dirparts = dirname.scan(/((\.)|(\/[^\/]+)*\/(.*))\/$/)[0]
       base = dirparts[3].nil? ? '' : dirparts[3] + "->"
       extre = "\.$NA_TODO_EXT"
-      puts "$DKGRAY#{base}#{filename.gsub(/#{extre}:$/,'')} $GREEN#{task.gsub(/^[ \t]+/,'').gsub(/ $NA_NEXT_TAG/,'')}"
+      puts "$DKGRAY#{base}#{filename.gsub(/#{extre}:$/,'')} $GREEN#{task.gsub(/^[ \t]+/,'').gsub(/ $NA_NEXT_TAG/,'').gsub(/(@\S+)/,"$CYAN\\\1$GREEN")}"
       olddirs.push(File.expand_path(dirname).gsub(/\/+$/,'').strip)
     }
     print "$DEFAULT"
@@ -153,6 +174,23 @@ _na_fix_output() {
     tdfile.puts olddirs.uniq.sort.join("\n")
     tdfile.close
 SCRIPTTIME
+}
+
+_weed_cache_file() {
+  ruby <<WEEDTIME
+    output = []
+    tdlist = File.expand_path('~/.tdlist')
+    if (File.exists?(tdlist))
+      File.open(tdlist, "r") do |infile|
+          while (line = infile.gets)
+              output.push(line) if File.exists?(File.expand_path(line.strip))
+          end
+      end
+      open(tdlist,'w+') { |f|
+        f.puts output.join("\n")
+      }
+    end
+WEEDTIME
 }
 
 if [[ $NA_AUTO_LIST_FOR_DIR -eq 1 ]]; then
