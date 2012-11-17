@@ -1,0 +1,141 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Na by ttscoff</title>
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script src="javascripts/respond.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <!--[if lt IE 8]>
+    <link rel="stylesheet" href="stylesheets/ie.css">
+    <![endif]-->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
+  </head>
+  <body>
+      <div id="header">
+        <nav>
+          <li class="fork"><a href="https://github.com/ttscoff/na">View On GitHub</a></li>
+          <li class="downloads"><a href="https://github.com/ttscoff/na/zipball/master">ZIP</a></li>
+          <li class="downloads"><a href="https://github.com/ttscoff/na/tarball/master">TAR</a></li>
+          <li class="title">DOWNLOADS</li>
+        </nav>
+      </div><!-- end header -->
+
+    <div class="wrapper">
+
+      <section>
+        <div id="title">
+          <h1>Na</h1>
+          <p>Bash function for displaying next actions in plain-text files per project directory</p>
+          <hr>
+          <span class="credits left">Project maintained by <a href="https://github.com/ttscoff">ttscoff</a></span>
+          <span class="credits right">Hosted on GitHub Pages &mdash; Theme by <a href="http://twitter.com/#!/michigangraham">mattgraham</a></span>
+        </div>
+
+        <p><code>na</code> is a bash function designed to make it easy to see what your next actions are for any project, right from the command line. It works with TaskPaper-format files (but any plain text format will do), looking for <a href="https://github.com/na" class="user-mention">@na</a> tags (or whatever you specify) in todo files in your current folder. It can also auto-display next actions when you enter a project directory, automatically locating any todo files and listing their next actions when you <code>cd</code> to the project (optionally recursive).</p>
+
+<h3>Features</h3>
+
+<p>You can list next actions in files in the current directory by typing <code>na</code>. By default, <code>na</code> looks for ".taskpaper" files and extracts items tagged "<a href="https://github.com/na" class="user-mention">@na</a>" and not "<a href="https://github.com/done" class="user-mention">@done</a>". All of these can be changed in the configuration.</p>
+
+<h4>Easy matching</h4>
+
+<p><code>na</code> features intelligent project matching. Every time it locates a todo file, it adds the project to the database. Once a project is recorded, you can list its actions by using any portion of the parent directories names. If your project is in "~/Sites/dev/markedapp," you could quickly list its next actions by typing <code>na dev mark</code>. It will always look for the shortest match.</p>
+
+<h4>Recursion</h4>
+
+<p><code>na</code> can also recurse subdirectories to find all todo files in child folders as well. Use the <code>-r</code> switch to do a recursive search on the current directory. <code>na -r</code> with no arguments will recurse from your current location, looking for todo files in all subdirectories. Maximum depth for recursion can be controlled in the config (default is 4). <code>na -r</code> can take a path or project title fragments as arguments as well, and will recurse from the matched directory. A configuration option allows you to have the auto-display recurse by default.</p>
+
+<h4>Adding todos</h4>
+
+<p>You can also quickly add todo items from the command line with the <code>-a</code> switch. The script will look for a file in the current directory called todo.taskpaper (or whatever extension you've set). If found, it will try to locate an "Inbox:" project, or create one if it doesn't exist. Any arguments after <code>-a</code> will be combined to create a new task in TaskPaper format. They will automatically be assigned as next actions (tagged "<a href="https://github.com/na" class="user-mention">@na</a>") and will show up when <code>na</code> lists the tasks for the project.</p>
+
+<h3>Installation</h3>
+
+<ol>
+<li>Place na.sh on your disk. You can put it in your home folder, but the location doesn't matter, as long as you adjust the path in the next step accordingly</li>
+<li>
+<p>Add this line to your <code>~/.bash_profile</code></p>
+
+<p>[[ -s "/Users/ttscoff/scripts/na.sh" ]] &amp;&amp; source "/Users/ttscoff/na.sh"</p>
+</li>
+</ol><p><strong>The database is stored in <code>~/.tdlist</code>. I haven't made this configurable yet.</strong></p>
+
+<h3>Usage</h3>
+
+<ul>
+<li>List todos with the <code>na</code> function
+
+<ul>
+<li>use an argument to match the dirname of another folder</li>
+<li>-a (add new todo to todo.taskpaper inbox in current folder)</li>
+<li>-r (recurse and concatenate <a href="https://github.com/na" class="user-mention">@na</a> in todo files up to 3 levels deep)</li>
+<li>-h (display help)</li>
+<li>for <code>na</code> and <code>na -r</code>, additional arguments are parsed for best (and shortest) project match</li>
+</ul>
+</li>
+<li>Auto-list todos when changing directory
+
+<ul>
+<li>only triggers on directory change command (cd,z,j,g,f)</li>
+<li>turn off auto-display entirely in the config</li>
+<li>set whether or not to auto-display recursively in the config</li>
+</ul>
+</li>
+</ul><h4>Examples</h4>
+
+<ul>
+<li>
+<code>na</code>: list next actions in the current directory</li>
+<li>
+<code>na -r</code>: list next actions recursively from the current directory</li>
+<li>
+<code>na ~</code>: list next actions in your home folder</li>
+<li>
+<code>na -r ~</code> list next actions recursively from home</li>
+<li>
+<code>na dev mark</code>: list next actions in a project located in <code>~/Sites/dev/markedapp</code>
+</li>
+<li>
+<code>na -a "Update documentation"</code>: create a new next action in the Inbox: project of <code>todo.taskpaper</code> in the current folder</li>
+</ul><h3>Configuration</h3>
+
+<ul>
+<li>Edit at the top of <code>na.sh</code>
+</li>
+<li>
+<strong>NA_TODO_EXT</strong>: (string) extension of your todo files (default "taskpaper")</li>
+<li>
+<strong>NA_NEXT_TAG</strong>: (string) tag for "Next Action" (default "<a href="https://github.com/na" class="user-mention">@na</a>")</li>
+<li>
+<strong>NA_DONE_TAG</strong>: (string) tag for completed actions (default "<a href="https://github.com/done" class="user-mention">@done</a>")</li>
+<li>
+<strong>NA_MAX_DEPTH</strong>: (int) how many directories deep should -r recurse (default 4)</li>
+<li>
+<strong>NA_AUTO_LIST_FOR_DIR</strong>: (int, 1 or 0) auto-list a directory's todo file when cd'ing to it? 1 to enable or 0 to disable. (default 1)</li>
+<li>
+<strong>NA_AUTO_LIST_IS_RECURSIVE</strong>: (int, 1 or 0) should auto-list be recursive? (default 0)</li>
+</ul>
+      </section>
+
+    </div>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+              <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+          </script>
+          <script type="text/javascript">
+            try {
+              var pageTracker = _gat._getTracker("UA-34296025-1");
+            pageTracker._trackPageview();
+            } catch(err) {}
+          </script>
+
+  </body>
+</html>
