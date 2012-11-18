@@ -21,6 +21,7 @@ function na() {
       echo -en $GREEN
       grep -h "$NA_NEXT_TAG" *.taskpaper | grep -v "$NA_DONE_TAG" | awk '{gsub(/(^[ \t]+| '"$NA_NEXT_TAG"')/, "")};1'
       echo "`pwd`" >> ~/.tdlist
+      echo -en "\033[00m"
       sort -u ~/.tdlist -o ~/.tdlist
     fi
     return
