@@ -19,7 +19,7 @@ function na() {
     CHKFILES=$(ls -C1 *.$NA_TODO_EXT 2> /dev/null | wc -l)
     if [ $CHKFILES -ne 0 ]; then
       echo -en $GREEN
-      grep -h "$NA_NEXT_TAG" *.taskpaper | grep -v "$NA_DONE_TAG" | awk '{gsub(/(^[ \t]+| '"$NA_NEXT_TAG"')/, "")};1'
+      grep -h "$NA_NEXT_TAG" *.$NA_TODO_EXT | grep -v "$NA_DONE_TAG" | awk '{gsub(/(^[ \t]+| '"$NA_NEXT_TAG"')/, "")};1'
       echo "`pwd`" >> ~/.tdlist
       echo -en "\033[00m"
       sort -u ~/.tdlist -o ~/.tdlist
