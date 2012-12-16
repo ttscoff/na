@@ -1,5 +1,21 @@
 #!/bin/bash
 
+# 88888b.  8888b.
+# 888 "88b    "88b
+# 888  888.d888888
+# 888  888888  888
+# 888  888"Y888888
+#
+# Brett Terpstra 2012
+
+# `na` is a bash function designed to make it easy to see what your next actions are for any project,
+# right from the command line. It works with TaskPaper-format files (but any plain text format will do),
+# looking for @na tags (or whatever you specify) in todo files in your current folder. It can also
+# auto-display next actions when you enter a project directory, automatically locating any todo files and
+# listing their next actions when you `cd` to the project (optionally recursive).
+#
+# na -h for help
+
 # NA_TODO_EXT Must be set to something to limit text searches
 NA_TODO_EXT="taskpaper"
 NA_NEXT_TAG="@na"
@@ -19,9 +35,8 @@ function na() {
     CHKFILES=$(ls -C1 *.$NA_TODO_EXT 2> /dev/null | wc -l)
     if [ $CHKFILES -ne 0 ]; then
       echo -en $GREEN
-      grep -h "$NA_NEXT_TAG" *.$NA_TODO_EXT | grep -v "$NA_DONE_TAG" | awk '{gsub(/(^[ \t]+| '"$NA_NEXT_TAG"')/, "")};1'
+      grep -h "$NA_NEXT_TAG" *.taskpaper | grep -v "$NA_DONE_TAG" | awk '{gsub(/(^[ \t]+| '"$NA_NEXT_TAG"')/, "")};1'
       echo "`pwd`" >> ~/.tdlist
-      echo -en "\033[00m"
       sort -u ~/.tdlist -o ~/.tdlist
     fi
     return
@@ -58,6 +73,27 @@ options:
   elif [[ $add -eq 1 ]]; then # if the argument is -a
     if [[ $fnd != '' ]]; then # if there is text to add as a todo item
       task=$fnd
+      targetcount=$(ls -C1 *.$NA_TODO_EXT 2> /dev/null | wc -l | tr -d " ")
+      if [[ $targetcount == "0" ]]; then
+        echo "Creating new todo file"
+        target="todo.$NA_TODO_EXT"
+      else
+        declare -a fileList=( *\.*$NA_TODO_EXT* )
+        if [[ ${#fileList[*]} == 1 ]]; then
+          target=${fileList[0]}
+        elif [[ ${#fileList[*]} -gt 1 ]]; then
+          IFS=$'\n'
+          PS3='Add to which file? '
+
+          select OPT in "Cancel" ${fileList[*]}; do
+            if [ $OPT != "Cancel" ]; then
+              target=$OPT
+            fi
+            unset IFS
+            break
+          done
+        fi
+      fi
       /usr/bin/ruby <<SCRIPT
       na = true
       input = "\t- " + "$task" + " $NA_NEXT_TAG"
@@ -65,8 +101,8 @@ options:
       inbox_found = false
       output = ''
 
-      if File.exists?('todo.$NA_TODO_EXT')
-        File.open('todo.$NA_TODO_EXT','r') do |f|
+      if File.exists?("$target")
+        File.open("$target",'r') do |f|
           while (line = f.gets)
             output += line
             if line =~ /inbox:/i
@@ -82,10 +118,11 @@ options:
         output += input + "\n"
       end
 
-      todofile = File.new('todo.$NA_TODO_EXT','w')
+      todofile = File.new("$target",'w')
       todofile.puts output
       todofile.close
 SCRIPT
+      echo "Added to $target"
    else # no text given
      echo "Usage: na -a \"text to be added to todo.$NA_TODO_EXT inbox\""
      echo "See `na -h` for help"
