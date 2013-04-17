@@ -30,12 +30,14 @@ function na() {
   local GREEN="\033[0;32m"
   local DEFAULT="\033[0;39m"
   local CYAN="\033[0;36m"
+  local RESET="\033[39m\033[49m"
   if [[ $# -eq 0 ]]; then
     # Do an ls to see if there are any matching files
     CHKFILES=$(ls -C1 *.$NA_TODO_EXT 2> /dev/null | wc -l)
     if [ $CHKFILES -ne 0 ]; then
       echo -en $GREEN
       grep -h "$NA_NEXT_TAG" *.taskpaper | grep -v "$NA_DONE_TAG" | awk '{gsub(/(^[ \t]+| '"$NA_NEXT_TAG"')/, "")};1'
+      echo -en $RESET
       echo "`pwd`" >> ~/.tdlist
       sort -u ~/.tdlist -o ~/.tdlist
     fi
@@ -157,6 +159,7 @@ SCRIPTTIME
         echo -e "$DKGRAY[$target+]:"
         dirlist=$(find "$target" -name "*.$NA_TODO_EXT" -maxdepth $NA_MAX_DEPTH -exec grep -H $NA_NEXT_TAG {} \; | grep -v "$NA_DONE_TAG")
         _na_fix_output "$dirlist"
+	echo -e "$RESET"
       else
         CHKFILES=$(ls -C1 $target/*.$NA_TODO_EXT 2> /dev/null | wc -l)
         if [ $CHKFILES -ne 0 ]; then
@@ -165,6 +168,7 @@ SCRIPTTIME
             grep -v "$NA_DONE_TAG" | \
             awk '{gsub(/(^[ \t]+| '"$NA_NEXT_TAG"')/, "")};1' | \
             sed -e "s/\(@[^ ]*\)/\\$CYAN\1\\$GREEN/g")"
+	  echo -e "$RESET"
         fi
       fi
   fi
@@ -176,6 +180,7 @@ _na_fix_output() {
   local GREEN="\033[0;32m"
   local DEFAULT="\033[0;39m"
   local CYAN="\033[0;36m"
+  local RESET="\033[39m\033[49m"
   /usr/bin/ruby <<SCRIPTTIME
     input = "$1"
     exit if input.nil? || input == ''
@@ -195,7 +200,7 @@ _na_fix_output() {
       dirparts = dirname.scan(/((\.)|(\/[^\/]+)*\/(.*))\/$/)[0]
       base = dirparts[3].nil? ? '' : dirparts[3] + "->"
       extre = "\.$NA_TODO_EXT"
-      puts "$DKGRAY#{base}#{filename.gsub(/#{extre}:$/,'')} $GREEN#{task.gsub(/^[ \t]+/,'').gsub(/ $NA_NEXT_TAG/,'').gsub(/(@\S+)/,"$CYAN\\\1$GREEN")}"
+      puts "$DKGRAY#{base}#{filename.gsub(/#{extre}:$/,'')} $GREEN#{task.gsub(/^[ \t]+/,'').gsub(/ $NA_NEXT_TAG/,'').gsub(/(@\S+)/,"$CYAN\\\1$GREEN")}$RESET"
       olddirs.push(File.expand_path(dirname).gsub(/\/+$/,'').strip)
     }
     print "$DEFAULT"
