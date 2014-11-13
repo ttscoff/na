@@ -17,12 +17,12 @@
 # na -h for help
 
 # NA_TODO_EXT Must be set to something to limit text searches
-NA_TODO_EXT="taskpaper"
-NA_NEXT_TAG="@na"
-NA_DONE_TAG="@done"
-NA_MAX_DEPTH=3
-NA_AUTO_LIST_FOR_DIR=1 # or 0 to disable
-NA_AUTO_LIST_IS_RECURSIVE=0
+: ${NA_TODO_EXT:="taskpaper"}
+: ${NA_NEXT_TAG="@na"}
+: ${NA_DONE_TAG:="@done"}
+: ${NA_MAX_DEPTH:=3}
+: ${NA_AUTO_LIST_FOR_DIR:=1} # 0 to disable
+: ${NA_AUTO_LIST_IS_RECURSIVE:=0}
 
 function na() {
 

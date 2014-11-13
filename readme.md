@@ -49,10 +49,12 @@ You can also quickly add todo items from the command line with the `-a` switch. 
 
 ### Configuration
 
-* Edit at the top of `na.sh`
-* **NA_TODO_EXT**: (string) extension of your todo files (default "taskpaper")
-* **NA_NEXT_TAG**: (string) tag for "Next Action" (default "@na")
-* **NA_DONE_TAG**: (string) tag for completed actions (default "@done")
-* **NA_MAX_DEPTH**: (int) how many directories deep should -r recurse (default 4)
-* **NA_AUTO_LIST_FOR_DIR**: (int, 1 or 0) auto-list a directory's todo file when cd'ing to it? 1 to enable or 0 to disable. (default 1)
-* **NA_AUTO_LIST_IS_RECURSIVE**: (int, 1 or 0) should auto-list be recursive? (default 0)
+Configure `na` by setting environment variables before you source it. Here are the default config values as an example:
+
+	export NA_TODO_EXT=taskpaper
+	export NA_NEXT_TAG=@na
+	export NA_DONE_TAG=@done
+	export NA_MAX_DEPTH=3
+	export NA_AUTO_LIST_FOR_DIR=1 # 0 to disable
+	export NA_AUTO_LIST_IS_RECURSIVE=0
+	[[ -s "/Users/ttscoff/scripts/na.sh" ]] && source "/Users/ttscoff/na.sh"
