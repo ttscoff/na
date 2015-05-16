@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # 88888b.  8888b.
 # 888 "88b    "88b
 # 888  888.d888888
@@ -30,76 +28,149 @@ function na() {
   local GREEN="\033[0;32m"
   local DEFAULT="\033[0;39m"
   local CYAN="\033[0;36m"
-  local RESET="\033[39m\033[49m"
-  if [[ $# -eq 0 ]]; then
-    # Do an ls to see if there are any matching files
-    CHKFILES=$(ls -C1 *.$NA_TODO_EXT 2> /dev/null | wc -l)
-    if [ $CHKFILES -ne 0 ]; then
-      echo -en $GREEN
-      grep -h "$NA_NEXT_TAG" *.taskpaper | grep -v "$NA_DONE_TAG" | awk '{gsub(/(^[ \t]+| '"$NA_NEXT_TAG"')/, "")};1'
-      echo -en $RESET
-      echo "`pwd`" >> ~/.tdlist
-      sort -u ~/.tdlist -o ~/.tdlist
-    fi
-    return
-  else
+  local YELLOW="\033[0;33m"
+  IFS='' read -r -d '' helpstring <<'ENDHELPSTRING'
+na [-r] [-t tag [-v value]] [query [additional identifiers]]
+na -a [-n] [-t tag] 'todo text'
+
+options:
+-r        recurse 3 directories deep and concatenate all $NA_TODO_EXT files
+-a [todo] add a todo to todo.$NA_TODO_EXT in the current dir
+-n        with -a, prompt for a note after reading task
+-t        specify an alternate tag (default @na)
+          pass empty quotes to apply no automatic tag
+-v        search for tag with specific value (requires -t)
+-h        show a brief help message
+ENDHELPSTRING
+  # _from "Installed from /Users/ttscoff/.bash_it/plugins/enabled/brett.plugin.bash"
+  if [ $# -gt 0 ]; then
     if [[ $NA_AUTO_LIST_IS_RECURSIVE -eq 1 ]]; then
       na_prompt_command="na -r"
     else
       na_prompt_command="na"
     fi
-    local fnd recurse add
+    local fnd=''
+    local recurse=0
+    local add=0
+    local note=0
+    local altTag=0
+    local tagValue taskTag
     while [ "$1" ]; do case "$1" in
     --prompt) [[ $(history 1|sed -e "s/^[ ]*[0-9]*[ ]*//") =~ ^((cd|z|j|g|f|pushd|popd|exit)([ ]|$)) ]] && $na_prompt_command; return;;
     -*) local opt=${1:1}; while [ "$opt" ]; do case ${opt:0:1} in
-      r) local recurse=1;;
-      a) local add=1;;
-      h) echo "na [-a 'todo text']
-na [-r] [query [additional identifiers]]
-
-options:
--r        recurse 3 directories deep and concatenate all $NA_TODO_EXT files
--a [todo] add a todo to todo.$NA_TODO_EXT in the current dir
--h        show a brief help message" >&2; return;;
+      r) recurse=1;;
+      a) add=1;;
+      n) note=1;;
+      h) echo $helpstring >&2; return;;
+      t)
+        if [[ $2 != '' && $2 =~ ^[^\-] ]]; then
+          shift; altTag="@${1#@}"
+        else
+          altTag=''
+        fi
+        ;;
+      v)
+        if [[ $2 != '' && $2 =~ ^[^\-] ]]; then
+          shift; [[ $1 != '' ]] && tagValue=$1
+        fi
+        ;;
       *) fnd+="$1 "; break;; # unknown option detected
     esac; opt="${opt:1}"; done;;
     *) fnd+="$1 ";;
     esac; shift; done
   fi
 
-  if [[ $recurse -eq 1 && $fnd == '' ]]; then # if the only argument is -r
+  if [[ $altTag == '' && $add -ne 0 ]]; then
+    taskTag=''
+  elif [[ $altTag != 0 && ${#altTag} -gt 0 ]]; then
+    taskTag=$altTag
+  else
+    taskTag=$NA_NEXT_TAG
+  fi
+
+  if [[ -n $tagValue && $tagValue != '' ]]; then
+    taskTag="$taskTag(${tagValue})"
+  fi
+
+
+  if [[ $add -eq 0 && ${#fnd} -eq 0 && $recurse -eq 0 ]]; then
+    # Do an ls to see if there are any matching files
+    CHKFILES=$(ls -C1 *.$NA_TODO_EXT 2> /dev/null | wc -l)
+    if [[ $CHKFILES -ne 0 ]]; then
+      echo -en $GREEN
+
+      echo -e "$(grep -h "$taskTag" *.taskpaper \
+              | grep -v "$NA_DONE_TAG" \
+              | awk '{gsub(/(^[ \t]+| '"$(echo "$taskTag"|sed -E 's/([\(\)])/\\\1/g')"')/, "")};1' \
+              | sed -E "s/(@[^\(]*)((\()([^\)]*)(\)))/\\$CYAN\1\3\\$YELLOW\4\\$CYAN\5\\$GREEN/g")"
+      echo "`pwd`" >> ~/.tdlist
+      sort -u ~/.tdlist -o ~/.tdlist
+    fi
+    return
+  fi
+
+  if [[ $recurse -eq 1 && ${#fnd} -eq 0 ]]; then # if the only argument is -r
     # echo -en $GREEN
-    # find . -name "*.$NA_TODO_EXT" -maxdepth 3 -exec cat {} \;| grep -H '@na' | grep -v '@done' | awk '{gsub(/(^[ \t]+| @na)/, "")};1'
-    dirlist=$(find . -name "*.$NA_TODO_EXT" -maxdepth $NA_MAX_DEPTH -exec grep -H "$NA_NEXT_TAG" {} \; | grep -v "$NA_DONE_TAG")
+    dirlist=$(find . -name "*.$NA_TODO_EXT" -maxdepth $NA_MAX_DEPTH -exec grep -H "$taskTag" {} \; | grep -v "$NA_DONE_TAG")
     _na_fix_output "$dirlist"
   elif [[ $add -eq 1 ]]; then # if the argument is -a
+    [[ $fnd == '' ]] && read -p "Task: " fnd # No text given for the task, read from STDIN
+
     if [[ $fnd != '' ]]; then # if there is text to add as a todo item
       task=$fnd
+      if [[ $note -eq 1 ]]; then
+        echo "Enter a note, use ^d to end: "
+        taskNote=$(cat)
+      fi
+
       targetcount=$(ls -C1 *.$NA_TODO_EXT 2> /dev/null | wc -l | tr -d " ")
       if [[ $targetcount == "0" ]]; then
-        echo "Creating new todo file"
-        target="todo.$NA_TODO_EXT"
+        local proj=${PWD##*/}
+        local newfile="${proj}.${NA_TODO_EXT}"
+        echo "Creating new todo file: $newfile"
+        target="$newfile"
+        if [ ! -e $target ]; then
+            touch $target
+            echo -e "Inbox @inbox:\n$proj:\n\tBugs:\n\tNew Features:\nArchive:" >> $target
+        fi
       else
         declare -a fileList=( *\.*$NA_TODO_EXT* )
         if [[ ${#fileList[*]} == 1 ]]; then
           target=${fileList[0]}
         elif [[ ${#fileList[*]} -gt 1 ]]; then
-          IFS=$'\n'
-          PS3='Add to which file? '
-
-          select OPT in "Cancel" ${fileList[*]}; do
-            if [ $OPT != "Cancel" ]; then
-              target=$OPT
-            fi
-            unset IFS
-            break
+          local counter=1
+          for f in ${fileList[@]}; do
+            echo "$counter) $f"
+            counter=$(( $counter+1 ))
           done
+          if [ $counter -gt 9 ]; then
+            read -p "Add to which file? "
+          else
+            read -n1 -p "Add to which file? "
+          fi
+          if [[ $REPLY =~ ^[0-9]+$ ]]; then
+            target=${fileList[$(($REPLY-1))]}
+          else
+            return
+          fi
         fi
       fi
       /usr/bin/ruby <<SCRIPT
       na = true
-      input = "\t- " + "$task" + " $NA_NEXT_TAG"
-
+      task = "$task"
+      note =<<'ENDNOTE'
+$(echo -e $taskNote)
+ENDNOTE
+      input = "\t- #{task.strip}"
+      if "$taskTag" != ''
+        input += " $taskTag"
+      end
+      if note.strip.length > 0
+        note = note.split(/\n/).map {|line|
+          "\t\t#{line}"
+        }.join("\n")
+        input += "\n#{note}"
+      end
       inbox_found = false
       output = ''
 
@@ -116,7 +187,7 @@ options:
       end
 
       unless inbox_found
-        output += "Inbox:\n"
+        output += "Inbox: @inbox\n"
         output += input + "\n"
       end
 
@@ -126,14 +197,14 @@ options:
 SCRIPT
       echo "Added to $target"
    else # no text given
-     echo "Usage: na -a \"text to be added to todo.$NA_TODO_EXT inbox\""
-     echo "See `na -h` for help"
-     return
+      echo "Usage: na -a \"text to be added to todo.$NA_TODO_EXT inbox\""
+      echo "See `na -h` for help"
+      return
    fi
   else
     _weed_cache_file
     if [[ -d "${fnd%% *}" ]]; then
-      cd "${fnd%% *}" >> /dev/null
+      cd "${fnd%% *}" 2> /dev/null
       target="`pwd`"
       cd - >> /dev/null
       echo "${target%/}" >> ~/.tdlist
@@ -155,22 +226,20 @@ SCRIPT
 SCRIPTTIME
 )
     fi
-      if [[ $recurse -eq 1 ]]; then
-        echo -e "$DKGRAY[$target+]:"
-        dirlist=$(find "$target" -name "*.$NA_TODO_EXT" -maxdepth $NA_MAX_DEPTH -exec grep -H $NA_NEXT_TAG {} \; | grep -v "$NA_DONE_TAG")
-        _na_fix_output "$dirlist"
-	echo -e "$RESET"
-      else
-        CHKFILES=$(ls -C1 $target/*.$NA_TODO_EXT 2> /dev/null | wc -l)
-        if [ $CHKFILES -ne 0 ]; then
-          echo -e "$DKGRAY[$target]:$GREEN"
-          echo -e "$(grep -h "$NA_NEXT_TAG" "$target"/*.$NA_TODO_EXT | \
-            grep -v "$NA_DONE_TAG" | \
-            awk '{gsub(/(^[ \t]+| '"$NA_NEXT_TAG"')/, "")};1' | \
-            sed -e "s/\(@[^ ]*\)/\\$CYAN\1\\$GREEN/g")"
-	  echo -e "$RESET"
-        fi
+    if [[ $recurse -eq 1 ]]; then
+      echo -e "$DKGRAY[$target+]:"
+      dirlist=$(find "$target" -name "*.$NA_TODO_EXT" -maxdepth $NA_MAX_DEPTH -exec grep -H "$taskTag" {} \; | grep -v "$NA_DONE_TAG")
+      _na_fix_output "$dirlist"
+    else
+      CHKFILES=$(ls -C1 $target/*.$NA_TODO_EXT 2> /dev/null | wc -l)
+      if [ $CHKFILES -ne 0 ]; then
+        echo -e "$DKGRAY[$target]:$GREEN"
+        echo -e "$(grep -h "$taskTag" "$target"/*.$NA_TODO_EXT | \
+          grep -v "$NA_DONE_TAG" | \
+          awk '{gsub(/(^[ \t]+| '"$(echo "$taskTag"|sed -E 's/([\(\)])/\\\1/g')"')/, "")};1' | \
+          sed -E "s/(@[^\(]*)((\()([^\)]*)(\)))/\\$CYAN\1\3\\$YELLOW\4\\$CYAN\5\\$GREEN/g")"
       fi
+    fi
   fi
   echo -en $DEFAULT
 }
@@ -180,7 +249,6 @@ _na_fix_output() {
   local GREEN="\033[0;32m"
   local DEFAULT="\033[0;39m"
   local CYAN="\033[0;36m"
-  local RESET="\033[39m\033[49m"
   /usr/bin/ruby <<SCRIPTTIME
     input = "$1"
     exit if input.nil? || input == ''
@@ -193,14 +261,15 @@ _na_fix_output() {
       end
     end
     input.split("\n").each {|line|
-      parts = line.scan(/([\.\/].*?\/)([^\/]+:)(.*)$/)
+      parts = line.scan(/([\.\/].*?\/)([^\/]+?:)(.*)$/)
       exit if parts[0].nil?
       parts = parts[0]
+
       dirname,filename,task = parts[0],parts[1],parts[2]
       dirparts = dirname.scan(/((\.)|(\/[^\/]+)*\/(.*))\/$/)[0]
       base = dirparts[3].nil? ? '' : dirparts[3] + "->"
       extre = "\.$NA_TODO_EXT"
-      puts "$DKGRAY#{base}#{filename.gsub(/#{extre}:$/,'')} $GREEN#{task.gsub(/^[ \t]+/,'').gsub(/ $NA_NEXT_TAG/,'').gsub(/(@\S+)/,"$CYAN\\\1$GREEN")}$RESET"
+      puts "$DKGRAY#{base}#{filename.gsub(/#{extre}:$/,'')} $GREEN#{task.gsub(/^[ \t]+/,'').gsub(/ $taskTag/,'').gsub(/(@[^\(]*)((\()([^\)]*)(\)))/,"$CYAN\\\1\\\3$YELLOW\\\4$CYAN\\\5$GREEN")}"
       olddirs.push(File.expand_path(dirname).gsub(/\/+$/,'').strip)
     }
     print "$DEFAULT"
@@ -217,21 +286,22 @@ _weed_cache_file() {
 
     if (File.exists?(tdlist))
       # If the file has been modified in the last 2 hours, leave it alone
-      if (Time.now.strftime('%s').to_i - File.stat(tdlist).mtime.strftime('%s').to_i) > 7200
+      # if (Time.now.strftime('%s').to_i - File.stat(tdlist).mtime.strftime('%s').to_i) > 7200
         # puts "Pruning missing folders from ~/.tdlist"
         File.open(tdlist, "r") do |infile|
-            while (line = infile.gets)
-                output.push(line) if File.exists?(File.expand_path(line.strip))
-            end
+          infile.each_line do |line|
+            output.push(line.strip) if File.exists?(File.expand_path(line.strip))
+          end
         end
         open(tdlist,'w+') { |f|
           f.puts output.join("\n")
         }
-      end
+      # end
     end
 WEEDTIME
+  # TODO: Check for git repo and do file operations in top level
 }
 
 if [[ $NA_AUTO_LIST_FOR_DIR -eq 1 ]]; then
-  echo $PROMPT_COMMAND | grep -v -q "na --prompt" && PROMPT_COMMAND='eval "na --prompt";'"$PROMPT_COMMAND"
+  echo $PROMPT_COMMAND | grep -v -q "na --prompt" && PROMPT_COMMAND="$PROMPT_COMMAND;"'eval "na --prompt"'
 fi
