@@ -4,7 +4,7 @@
 # 888  888888  888
 # 888  888"Y888888
 #
-# Brett Terpstra 2012
+# Brett Terpstra 2015
 
 # `na` is a bash function designed to make it easy to see what your next actions are for any project,
 # right from the command line. It works with TaskPaper-format files (but any plain text format will do),
@@ -99,9 +99,10 @@ ENDHELPSTRING
     if [[ $CHKFILES -ne 0 ]]; then
       echo -en $GREEN
 
-      echo -e "$(grep -h "$taskTag" *.taskpaper \
+      echo -e "$(grep -Eh "(^\t*-|: *@.*$)" *.$NA_TODO_EXT \
+              | grep -h "$taskTag" \
               | grep -v "$NA_DONE_TAG" \
-              | awk '{gsub(/(^[ \t]+| '"$(echo "$taskTag"|sed -E 's/([\(\)])/\\\1/g')"')/, "")};1' \
+              | awk '{gsub(/(^[ \t\-]+| '"$(echo "$taskTag"|sed -E 's/([\(\)])/\\\1/g')"')/, "")};1' \
               | sed -E "s/(@[^\(]*)((\()([^\)]*)(\)))/\\$CYAN\1\3\\$YELLOW\4\\$CYAN\5\\$GREEN/g")"
       echo "`pwd`" >> ~/.tdlist
       sort -u ~/.tdlist -o ~/.tdlist
@@ -228,16 +229,17 @@ SCRIPTTIME
     fi
     if [[ $recurse -eq 1 ]]; then
       echo -e "$DKGRAY[$target+]:"
-      dirlist=$(find "$target" -name "*.$NA_TODO_EXT" -maxdepth $NA_MAX_DEPTH -exec grep -H "$taskTag" {} \; | grep -v "$NA_DONE_TAG")
+      dirlist=$(find "$target" -name "*.$NA_TODO_EXT" -maxdepth $NA_MAX_DEPTH -exec grep -EH "(^\t*-|: *@.*$)" {} \; | grep -v "$NA_DONE_TAG" | grep -H "$taskTag")
       _na_fix_output "$dirlist"
     else
       CHKFILES=$(ls -C1 $target/*.$NA_TODO_EXT 2> /dev/null | wc -l)
       if [ $CHKFILES -ne 0 ]; then
         echo -e "$DKGRAY[$target]:$GREEN"
-        echo -e "$(grep -h "$taskTag" "$target"/*.$NA_TODO_EXT | \
-          grep -v "$NA_DONE_TAG" | \
-          awk '{gsub(/(^[ \t]+| '"$(echo "$taskTag"|sed -E 's/([\(\)])/\\\1/g')"')/, "")};1' | \
-          sed -E "s/(@[^\(]*)((\()([^\)]*)(\)))/\\$CYAN\1\3\\$YELLOW\4\\$CYAN\5\\$GREEN/g")"
+        echo -e "$(grep -EH "(^\t*-|: *@.*$)" "$target"/*.$NA_TODO_EXT \
+          | grep -h "$taskTag" \
+          | grep -v "$NA_DONE_TAG" \
+          | awk '{gsub(/(^[ \t\-]+| '"$(echo "$taskTag"|sed -E 's/([\(\)])/\\\1/g')"')/, "")};1' \
+          | sed -E "s/(@[^\(]*)((\()([^\)]*)(\)))/\\$CYAN\1\3\\$YELLOW\4\\$CYAN\5\\$GREEN/g")"
       fi
     fi
   fi
@@ -245,10 +247,6 @@ SCRIPTTIME
 }
 
 _na_fix_output() {
-  local DKGRAY="\033[1;30m"
-  local GREEN="\033[0;32m"
-  local DEFAULT="\033[0;39m"
-  local CYAN="\033[0;36m"
   /usr/bin/ruby <<SCRIPTTIME
     input = "$1"
     exit if input.nil? || input == ''
@@ -269,7 +267,7 @@ _na_fix_output() {
       dirparts = dirname.scan(/((\.)|(\/[^\/]+)*\/(.*))\/$/)[0]
       base = dirparts[3].nil? ? '' : dirparts[3] + "->"
       extre = "\.$NA_TODO_EXT"
-      puts "$DKGRAY#{base}#{filename.gsub(/#{extre}:$/,'')} $GREEN#{task.gsub(/^[ \t]+/,'').gsub(/ $taskTag/,'').gsub(/(@[^\(]*)((\()([^\)]*)(\)))/,"$CYAN\\\1\\\3$YELLOW\\\4$CYAN\\\5$GREEN")}"
+      puts "$DKGRAY#{base}#{filename.gsub(/#{extre}:$/,'')} $GREEN#{task.gsub(/^[ \t\-]+/,'').gsub(/ $taskTag/,'').gsub(/(@[^\(]*)((\()([^\)]*)(\)))/,"$CYAN\\\1\\\3$YELLOW\\\4$CYAN\\\5$GREEN")}"
       olddirs.push(File.expand_path(dirname).gsub(/\/+$/,'').strip)
     }
     print "$DEFAULT"
