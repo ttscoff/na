@@ -23,7 +23,6 @@
 : ${NA_AUTO_LIST_IS_RECURSIVE:=0}
 
 function na() {
-
   local DKGRAY="\033[1;30m"
   local GREEN="\033[0;32m"
   local DEFAULT="\033[0;39m"
@@ -179,9 +178,11 @@ ENDNOTE
         File.open("$target",'r') do |f|
           while (line = f.gets)
             output += line
-            if line =~ /inbox:/i
-              output += input + "\n"
-              inbox_found = true
+            unless inbox_found
+              if line =~ /^\s*inbox:/i
+                output += input + "\n"
+                inbox_found = true
+              end
             end
           end
         end
