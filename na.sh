@@ -144,7 +144,7 @@ ENDHELPSTRING
         target="$newfile"
         if [ ! -e $target ]; then
             touch $target
-            echo -e "Inbox @inbox:\n$proj:\n\tBugs:\n\tNew Features:\nArchive:" >> $target
+            echo -e "Inbox:\n$proj:\n\tNew Features:\n\tIdeas:\n\tBugs:\nArchive:\nSearch Definitions:\n\tTop Priority @search(@priority = 5 and not @done)\n\tHigh Priority @search(@priority > 3 and not @done)\n\tMaybe @search(@maybe)\n\tNext @search(@na and not @done and not project = \"Archive\")\n" >> $target
         fi
       else
         declare -a fileList=( *\.*$NA_TODO_EXT* )
