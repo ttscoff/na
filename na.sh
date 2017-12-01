@@ -302,5 +302,9 @@ WEEDTIME
 }
 
 if [[ $NA_AUTO_LIST_FOR_DIR -eq 1 ]]; then
-  echo $PROMPT_COMMAND | grep -v -q "na --prompt" && PROMPT_COMMAND="$PROMPT_COMMAND;"'eval "na --prompt"'
+  if [[ -z "$PROMPT_COMMAND" ]]; then
+    PROMPT_COMMAND="eval 'na --prompt'"
+  else
+    echo $PROMPT_COMMAND | grep -v -q "na --prompt" && PROMPT_COMMAND="$PROMPT_COMMAND;"'eval "na --prompt"'
+  fi
 fi
