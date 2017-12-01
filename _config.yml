@@ -1,0 +1,8 @@
+title: Na
+description: Bash function for displaying next actions in plain-text files per project directory
+google_analytics: UA-34296025-1
+show_downloads: true
+theme: jekyll-theme-dinky
+
+gems:
+  - jekyll-mentions
