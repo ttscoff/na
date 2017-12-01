@@ -38,6 +38,7 @@ options:
 -n        with -a, prompt for a note after reading task
 -t        specify an alternate tag (default @na)
           pass empty quotes to apply no automatic tag
+-p [X]    add a @priority(X) tag
 -v        search for tag with specific value (requires -t)
 -h        show a brief help message
 ENDHELPSTRING
@@ -53,6 +54,7 @@ ENDHELPSTRING
     local add=0
     local note=0
     local altTag=0
+    local priority=0
     local tagValue taskTag
     while [ "$1" ]; do case "$1" in
     --prompt) [[ $(history 1|sed -e "s/^[ ]*[0-9]*[ ]*//") =~ ^((cd|z|j|g|f|pushd|popd|exit)([ ]|$)) ]] && $na_prompt_command; return;;
@@ -60,6 +62,13 @@ ENDHELPSTRING
       r) recurse=1;;
       a) add=1;;
       n) note=1;;
+      p)
+        if [[ $2 != '' && $2 =~ ^[0-9]+ ]]; then
+          shift; priority=$1
+        else
+          priority=0
+        fi
+        ;;
       h) echo $helpstring >&2; return;;
       t)
         if [[ $2 != '' && $2 =~ ^[^\-] ]]; then
@@ -85,6 +94,10 @@ ENDHELPSTRING
     taskTag=$altTag
   else
     taskTag=$NA_NEXT_TAG
+  fi
+
+  if [[ $priority -gt 0 ]]; then
+    taskTag="@priority(${priority}) $taskTag"
   fi
 
   if [[ -n $tagValue && $tagValue != '' ]]; then
@@ -302,5 +315,9 @@ WEEDTIME
 }
 
 if [[ $NA_AUTO_LIST_FOR_DIR -eq 1 ]]; then
-  echo $PROMPT_COMMAND | grep -v -q "na --prompt" && PROMPT_COMMAND="$PROMPT_COMMAND;"'eval "na --prompt"'
+  if [[ -z "$PROMPT_COMMAND" ]]; then
+    PROMPT_COMMAND="eval 'na --prompt'"
+  else
+    echo $PROMPT_COMMAND | grep -v -q "na --prompt" && PROMPT_COMMAND="$PROMPT_COMMAND;"'eval "na --prompt"'
+  fi
 fi

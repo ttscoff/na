@@ -1,4 +1,6 @@
-`na` is a bash function designed to make it easy to see what your next actions are for any project, right from the command line. It works with TaskPaper-format files (but any plain text format will do), looking for `@na` tags (or whatever you specify) in todo files in your current folder. 
+`na` is a bash function designed to make it easy to see what your next actions are for any project, right from the command line. It works with TaskPaper-formatted files (but any plain text format will do), looking for `@na` tags (or whatever you specify) in todo files in your current folder. 
+
+Used with Taskpaper files, it can add new todo items quickly from the command line, automatically tagging them as next actions.
 
 It can also auto-display next actions when you enter a project directory, automatically locating any todo files and listing their next actions when you `cd` to the project (optionally recursive).
 
@@ -33,25 +35,46 @@ If found, it will try to locate an `Inbox:` project, or create one if it doesn't
 
 ### Usage
 
-* List todos with the `na` function
-  * use an argument to match the dirname of another folder
-	* `-a` (add new todo to `todo.taskpaper` inbox in current folder)
-	* `-r` (recurse and concatenate `@na` in todo files up to 3 levels deep)
-	* `-h` (display help)
-	* for `na` and `na -r`, additional arguments are parsed for best (and shortest) project match
-* Auto-list todos when changing directory
-	* only triggers on directory change command (`cd`,`z`,`j`,`g`,`f`)
-	* turn off auto-display entirely in the config
-	* set whether or not to auto-display recursively in the config
+-r        recurse 3 directories deep and concatenate all $NA_TODO_EXT files
+-a [todo] add a todo to todo.$NA_TODO_EXT in the current dir
+-n        with -a, prompt for a note after reading task
+-t        specify an alternate tag (default @na)
+          pass empty quotes to apply no automatic tag
+-p [X]    add a @priority(X) tag (with -a)
+-v        search for tag with specific value (requires -t)
+-h        show a brief help message
+
+- **Add todos**
+	- `na -a ["todo item"]`: add new todo to project's `.taskpaper` file inbox in the current folder
+		- If no "todo item" is specified, it will prompt you for input
+		- `-n`: used with -a, prompt for a note after reading task
+		- `-t`: specify an alternate tag (default @na)
+			+ Pass empty quotes to apply no automatic tag
+			+ You can add additional @tags in the task description
+		- `-p [X]` add a @priority(X) tag
+- **List todos**
+	- `na` lists all next actions in the current folder's taskpaper file
+		- na caches folders it's used in, so you can use an optional argument to match the dirname of another folder (`na marked`)
+		- `-t` (without `-a`) search for a specific tag
+			+ `-v` search for a tag with a specific value, e.g. `na -t priority -v 5`
+		- `-p` (without `-a`) search for items with a specific priority value (shortcut for `na -t priority -v X`)
+	- `-r` (recurse and concatenate `@na` in todo files up to 3 levels deep, works with optional argument to list another folder)
+	- for `na` and `na -r`, additional arguments are parsed for best (and shortest) project match
+- **Auto-list todos when changing directory**
+	- only triggers on directory change command (`cd`,`z`,`j`,`g`,`f`)
+	- turn off auto-display entirely in the config
+	- set whether or not to auto-display recursively in the config
+- **Help**
+	- `-h` (display help)
 
 #### Examples
 
-* `na`: list next actions in the current directory
-* `na -r`: list next actions recursively from the current directory
-* `na ~`: list next actions in your home folder
-* `na -r ~` list next actions recursively from home
-* `na dev mark`: list next actions in a project located in `~/Sites/dev/markedapp`
-* `na -a "Update documentation"`: create a new next action in the `Inbox:` project of `todo.taskpaper` in the current folder
+- `na`: list next actions in the current directory
+- `na -r`: list next actions recursively from the current directory
+- `na ~`: list next actions in your home folder
+- `na -r ~` list next actions recursively from home
+- `na dev mark`: list next actions in a project located in `~/Sites/dev/marked2app`
+- `na -a "Update documentation"`: create a new next action in the `Inbox:` project of `todo.taskpaper` in the current folder
 
 ### Configuration
 
