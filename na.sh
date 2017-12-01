@@ -4,7 +4,7 @@
 # 888  888888  888
 # 888  888"Y888888
 #
-# Brett Terpstra 2015
+# Brett Terpstra 2017
 
 # `na` is a bash function designed to make it easy to see what your next actions are for any project,
 # right from the command line. It works with TaskPaper-format files (but any plain text format will do),
@@ -55,7 +55,7 @@ ENDHELPSTRING
     local note=0
     local altTag=0
     local priority=0
-    local tagValue taskTag
+    local task tagValue taskTag taskNote target
     while [ "$1" ]; do case "$1" in
     --prompt) [[ $(history 1|sed -e "s/^[ ]*[0-9]*[ ]*//") =~ ^((cd|z|j|g|f|pushd|popd|exit)([ ]|$)) ]] && $na_prompt_command; return;;
     -*) local opt=${1:1}; while [ "$opt" ]; do case ${opt:0:1} in
@@ -96,8 +96,14 @@ ENDHELPSTRING
     taskTag=$NA_NEXT_TAG
   fi
 
-  if [[ $priority -gt 0 ]]; then
-    taskTag="@priority(${priority}) $taskTag"
+  if [[ $add -eq 1 ]]; then
+    if [[ $priority -gt 0 ]]; then
+      taskTag="@priority(${priority}) $taskTag"
+    fi
+  else
+    if [[ $priority -gt 0 ]]; then
+      taskTag="@priority(${priority})"
+    fi
   fi
 
   if [[ -n $tagValue && $tagValue != '' ]]; then
