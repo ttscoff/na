@@ -130,7 +130,7 @@ ENDHELPSTRING
 
   if [[ $recurse -eq 1 && ${#fnd} -eq 0 ]]; then # if the only argument is -r
     # echo -en $GREEN
-    dirlist=$(find . -name "*.$NA_TODO_EXT" -maxdepth $NA_MAX_DEPTH -exec grep -H "$taskTag" {} \; | grep -v "$NA_DONE_TAG")
+    dirlist=$(find -maxdepth $NA_MAX_DEPTH . -name "*.$NA_TODO_EXT" -exec grep -H "$taskTag" {} \; | grep -v "$NA_DONE_TAG")
     _na_fix_output "$dirlist"
   elif [[ $add -eq 1 ]]; then # if the argument is -a
     [[ $fnd == '' ]] && read -p "Task: " fnd # No text given for the task, read from STDIN
@@ -249,7 +249,7 @@ SCRIPTTIME
     fi
     if [[ $recurse -eq 1 ]]; then
       echo -e "$DKGRAY[$target+]:"
-      dirlist=$(find "$target" -name "*.$NA_TODO_EXT" -maxdepth $NA_MAX_DEPTH -exec grep -EH "(^\t*-|: *@.*$)" {} \; | grep -v "$NA_DONE_TAG" | grep -H "$taskTag")
+      dirlist=$(find -maxdepth $NA_MAX_DEPTH "$target" -name "*.$NA_TODO_EXT" -exec grep -EH "(^\t*-|: *@.*$)" {} \; | grep -v "$NA_DONE_TAG" | grep -H "$taskTag")
       _na_fix_output "$dirlist"
     else
       CHKFILES=$(ls -C1 $target/*.$NA_TODO_EXT 2> /dev/null | wc -l)
