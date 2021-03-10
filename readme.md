@@ -27,10 +27,10 @@ If found, it will try to locate an `Inbox:` project, or create one if it doesn't
 ### Installation
 
 1. Get the script here: <https://github.com/ttscoff/na/blob/master/na.sh>
-2. Place `na.sh` on your disk. You can put it in your home folder, but the location doesn't matter, as long as you adjust the path  accordingly (see the next step)
+2. Place `na.sh` on your disk. You can put it in your home folder, but the location doesn't matter, as long as you adjust the path accordingly (see the next step)
 3. Add this line to your `~/.bash_profile`
 		 
-	[[ -s "$HOME/scripts/na.sh" ]] && source "$HOME/na.sh"
+	[[ -s "$HOME/scripts/" ]] && source "$HOME/scripts/na.sh"
 
 *The cache of used directories is stored in `~/.tdlist`. I haven't made this configurable yet.*
 
