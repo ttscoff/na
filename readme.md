@@ -111,7 +111,7 @@ end
 Zsh (in ~/.zshrc):
 
 ```zsh
-
+chpwd() { na }
 ```
 
 
