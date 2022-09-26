@@ -1,4 +1,4 @@
-`na` is a bash function designed to make it easy to see what your next actions are for any project, right from the command line. It works with TaskPaper-formatted files (but any plain text format will do), looking for `@na` tags (or whatever you specify) in todo files in your current folder. 
+`na` is a script designed to make it easy to see what your next actions are for any project, right from the command line. It works with TaskPaper-formatted files (but any plain text format will do), looking for `@na` tags (or whatever you specify) in todo files in your current folder. 
 
 Used with Taskpaper files, it can add new todo items quickly from the command line, automatically tagging them as next actions.
 
@@ -26,11 +26,8 @@ If found, it will try to locate an `Inbox:` project, or create one if it doesn't
 
 ### Installation
 
-1. Get the script here: <https://github.com/ttscoff/na/blob/master/na.sh>
-2. Place `na.sh` on your disk. You can put it in your home folder, but the location doesn't matter, as long as you adjust the path  accordingly (see the next step)
-3. Add this line to your `~/.bash_profile`
-		 
-	[[ -s "$HOME/scripts/na.sh" ]] && source "$HOME/na.sh"
+1. Get the script here: <https://github.com/ttscoff/na/blob/master/na>
+2. Place `na` in a folder in your path and ensure that it's executable with `chmod a+x /path/to/na`. 
 
 *The cache of used directories is stored in `~/.tdlist`. I haven't made this configurable yet.*
 
@@ -87,6 +84,37 @@ Here are the default values, for reference:
 	export NA_NEXT_TAG=@na
 	export NA_DONE_TAG=@done
 	export NA_MAX_DEPTH=3
-	export NA_AUTO_LIST_FOR_DIR=1 # 0 to disable
-	export NA_AUTO_LIST_IS_RECURSIVE=0
-	[[ -s "$HOME/scripts/na.sh" ]] && source "$HOME/na.sh"
+
+### Auto-listing todos on PWD change
+
+You can add a prompt command to your shell to have na automatically list your next actions when you `cd` into a directory. Add the appropriate command to your login file for your shell:
+
+Bash (in ~/.bash_profile):
+
+```bash
+if [[ -z "$PROMPT_COMMAND" ]]; then
+	PROMPT_COMMAND="eval 'na --prompt'"
+else
+	echo $PROMPT_COMMAND | grep -v -q "na --prompt" && PROMPT_COMMAND="$PROMPT_COMMAND;"'eval "na --prompt"'
+fi
+```
+
+Fish (in ~/.config/fish/conf.d/*.fish):
+
+```fish
+function __should_na --on-variable PWD
+	# function __should_na --on-event fish_prompt
+	test -s (basename $PWD)".taskpaper" && na
+end
+```
+
+Zsh (in ~/.zshrc):
+
+```zsh
+
+```
+
+
+### Misc
+
+If you have [gum](https://github.com/charmbracelet/gum) installed, na will use it for command line input when adding tasks and notes.

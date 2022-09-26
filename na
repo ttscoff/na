@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 # 88888b.  8888b.
 # 888 "88b    "88b
 # 888  888.d888888
@@ -19,8 +21,11 @@
 : ${NA_NEXT_TAG="@na"}
 : ${NA_DONE_TAG:="@done"}
 : ${NA_MAX_DEPTH:=3}
-: ${NA_AUTO_LIST_FOR_DIR:=1} # 0 to disable
-: ${NA_AUTO_LIST_IS_RECURSIVE:=0}
+
+_USE_GUM=false
+which gum &>/dev/null
+[[ $? == 0 ]] && _USE_GUM=true
+: ${NA_USE_GUM:=$_USE_GUM}
 
 function na() {
   local DKGRAY="\033[1;30m"
@@ -28,21 +33,20 @@ function na() {
   local DEFAULT="\033[0;39m"
   local CYAN="\033[0;36m"
   local YELLOW="\033[0;33m"
-  IFS='' read -r -d '' helpstring <<ENDHELPSTRING
-na [-r] [-t tag [-v value]] [query [additional identifiers]]
-na -a [-n] [-t tag] 'todo text'
-
-options:
--r        recurse 3 directories deep and concatenate all $NA_TODO_EXT files
--a [todo] add a todo to todo.$NA_TODO_EXT in the current dir
--n        with -a, prompt for a note after reading task
--t        specify an alternate tag (default @na)
-          pass empty quotes to apply no automatic tag
--p [X]    add a @priority(X) tag
--v        search for tag with specific value (requires -t)
--h        show a brief help message
+  IFS="" read -r -d '' helpstring <<ENDHELPSTRING
+na [-r] [-t tag [-v value]] [query [additional identifiers]]\n
+na -a [-n] [-t tag] 'todo text'\n
+\n
+options:\n
+-r        recurse 3 directories deep and concatenate all $NA_TODO_EXT files\n
+-a [todo] add a todo to todo.$NA_TODO_EXT in the current dir\n
+-n        with -a, prompt for a note after reading task\n
+-t        specify an alternate tag (default @na)\n
+          pass empty quotes to apply no automatic tag\n
+-p [X]    add a @priority(X) tag\n
+-v        search for tag with specific value (requires -t)\n
+-h        show a brief help message\n
 ENDHELPSTRING
-  # _from "Installed from /Users/ttscoff/.bash_it/plugins/enabled/brett.plugin.bash"
   if [ $# -gt 0 ]; then
     if [[ $NA_AUTO_LIST_IS_RECURSIVE -eq 1 ]]; then
       na_prompt_command="na -r"
@@ -57,7 +61,7 @@ ENDHELPSTRING
     local priority=0
     local task tagValue taskTag taskNote target
     while [ "$1" ]; do case "$1" in
-    --prompt) [[ $(history 1|sed -e "s/^[ ]*[0-9]*[ ]*//") =~ ^((cd|z|j|g|f|pushd|popd|exit)([ ]|$)) ]] && $na_prompt_command; return;;
+    --prompt) [[ $(history 1|sed -e "s/^[ ]*[0-9]*[ ]*//") =~ ^((cd|z|j|jump|g|f|pushd|popd|exit)([ ]|$)) ]] && $na_prompt_command; return;;
     -*) local opt=${1:1}; while [ "$opt" ]; do case ${opt:0:1} in
       r) recurse=1;;
       a) add=1;;
@@ -69,7 +73,7 @@ ENDHELPSTRING
           priority=0
         fi
         ;;
-      h) echo "${helpstring}" >&2; return;;
+      h) echo -e ${helpstring} >&2; return;;
       t)
         if [[ $2 != '' && $2 =~ ^[^\-] ]]; then
           shift; altTag="@${1#@}"
@@ -110,7 +114,6 @@ ENDHELPSTRING
     taskTag="$taskTag(${tagValue})"
   fi
 
-
   if [[ $add -eq 0 && ${#fnd} -eq 0 && $recurse -eq 0 ]]; then
     # Do an ls to see if there are any matching files
     CHKFILES=$(ls -C1 *.$NA_TODO_EXT 2> /dev/null | wc -l)
@@ -125,22 +128,30 @@ ENDHELPSTRING
       echo "`pwd`" >> ~/.tdlist
       sort -u ~/.tdlist -o ~/.tdlist
     fi
-    echo -en $DEFAULT
     return
   fi
 
   if [[ $recurse -eq 1 && ${#fnd} -eq 0 ]]; then # if the only argument is -r
     # echo -en $GREEN
-    dirlist=$(find . -maxdepth $NA_MAX_DEPTH -name "*.$NA_TODO_EXT" -exec grep -H "$taskTag" {} \; | grep -v "$NA_DONE_TAG")
+    dirlist=$(find . -name "*.$NA_TODO_EXT" -maxdepth $NA_MAX_DEPTH -exec grep -H "$taskTag" {} \; | grep -v "$NA_DONE_TAG")
     _na_fix_output "$dirlist"
   elif [[ $add -eq 1 ]]; then # if the argument is -a
-    [[ $fnd == '' ]] && read -p "Task: " fnd # No text given for the task, read from STDIN
-
+    if [[ $fnd == '' ]]; then
+      if $QQ_USE_GUM; then
+        fnd=$(gum input --placeholder "Enter a task")
+      else
+        read -p "Task: " fnd # No text given for the task, read from STDIN
+      fi
+    fi
     if [[ $fnd != '' ]]; then # if there is text to add as a todo item
       task=$fnd
       if [[ $note -eq 1 ]]; then
-        echo "Enter a note, use ^d to end: "
-        taskNote=$(cat)
+        if $NA_USE_GUM; then
+          taskNote=$(gum write --placeholder "Enter a note" --width $(tput cols) --char-limit 0)
+        else
+          echo "Enter a note, use ^d to end: "
+          taskNote=$(cat)
+        fi
       fi
 
       targetcount=$(ls -C1 *.$NA_TODO_EXT 2> /dev/null | wc -l | tr -d " ")
@@ -175,7 +186,7 @@ ENDHELPSTRING
           fi
         fi
       fi
-      /usr/bin/ruby <<SCRIPT
+      /usr/bin/env ruby <<SCRIPT
       na = true
       task = "$task"
       note =<<'ENDNOTE'
@@ -232,7 +243,7 @@ SCRIPT
       echo "${target%/}" >> ~/.tdlist
       sort -u ~/.tdlist -o ~/.tdlist
     else
-      target=$(ruby <<SCRIPTTIME
+      target=$(/usr/bin/env ruby <<SCRIPTTIME
       if (File.exists?(File.expand_path('~/.tdlist')))
         query = "$fnd"
         input = File.open(File.expand_path('~/.tdlist'),'r').read
@@ -250,7 +261,7 @@ SCRIPTTIME
     fi
     if [[ $recurse -eq 1 ]]; then
       echo -e "$DKGRAY[$target+]:"
-      dirlist=$(find  "$target" -maxdepth $NA_MAX_DEPTH -name "*.$NA_TODO_EXT" -exec grep -EH "(^\t*-|: *@.*$)" {} \; | grep -v "$NA_DONE_TAG" | grep -H "$taskTag")
+      dirlist=$(find "$target" -name "*.$NA_TODO_EXT" -maxdepth $NA_MAX_DEPTH -exec grep -EH "(^\t*-|: *@.*$)" {} \; | grep -v "$NA_DONE_TAG" | grep -H "$taskTag")
       _na_fix_output "$dirlist"
     else
       CHKFILES=$(ls -C1 $target/*.$NA_TODO_EXT 2> /dev/null | wc -l)
@@ -268,7 +279,7 @@ SCRIPTTIME
 }
 
 _na_fix_output() {
-  /usr/bin/ruby <<SCRIPTTIME
+  /usr/bin/env ruby <<SCRIPTTIME
     input = "$1"
     exit if input.nil? || input == ''
     olddirs = []
@@ -299,7 +310,7 @@ SCRIPTTIME
 }
 
 _weed_cache_file() {
-  ruby <<WEEDTIME
+  /usr/bin/env ruby <<WEEDTIME
     output = []
     tdlist = File.expand_path('~/.tdlist')
 
@@ -321,10 +332,4 @@ WEEDTIME
   # TODO: Check for git repo and do file operations in top level
 }
 
-if [[ $NA_AUTO_LIST_FOR_DIR -eq 1 ]]; then
-  if [[ -z "$PROMPT_COMMAND" ]]; then
-    PROMPT_COMMAND="eval 'na --prompt'"
-  else
-    echo $PROMPT_COMMAND | grep -v -q "na --prompt" && PROMPT_COMMAND="$PROMPT_COMMAND;"'eval "na --prompt"'
-  fi
-fi
+na $@
